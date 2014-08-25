@@ -18,6 +18,7 @@
 #include <cstring>
 #include <iostream>
 #include <algorithm>
+#include <map>
 using std::min;
 
 using namespace stk;
@@ -81,6 +82,7 @@ void processMessage( TickData* data )
     return;
 
   case __SK_NoteOn_:
+    std::cout << "note on\n";
     if ( value2 == 0.0 ) // velocity is zero ... really a NoteOff
       data->envelope.setTarget( 0.0 );
     else // a NoteOn
@@ -88,6 +90,7 @@ void processMessage( TickData* data )
     break;
 
   case __SK_NoteOff_:
+    std::cout << "note off\n";
     data->envelope.setTarget( 0.0 );
     break;
 
@@ -96,12 +99,14 @@ void processMessage( TickData* data )
     switch ( value1 ) {
 
     case 20: { // effect type change
+      std::cout << "effect type change\n";
       int type = data->message.intValues[1];
       data->effectId = (unsigned int) type;
       break;
     }
 
     case 22: // effect parameter change 1
+      std::cout << "effect param 1 change\n";
       data->echo.setDelay( (unsigned long) (temp * Stk::sampleRate() * 0.95) );
       data->lshifter.setShift( 1.4 * temp + 0.3 );
       data->shifter.setShift( 1.4 * temp + 0.3 );
@@ -113,11 +118,13 @@ void processMessage( TickData* data )
       break;
 
     case 23: // effect parameter change 2
+      std::cout << "effect param 2 change\n";
       data->chorus.setModDepth( temp * 0.2 );
       data->frev.setRoomSize( temp );
       break;
 
     case 44: // effect mix
+      std::cout << "effect mix change\n";
       data->echo.setEffectMix( temp );
       data->shifter.setEffectMix( temp );
       data->lshifter.setEffectMix( temp );
@@ -155,6 +162,7 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
   register StkFloat sample;
   Effect *effect;
   int i, counter, nTicks = (int) nBufferFrames;
+
 
   while ( nTicks > 0 && !done ) {
 
@@ -222,6 +230,78 @@ int main( int argc, char *argv[] )
   TickData data;
   RtAudio adac;
   int i;
+  
+  RtAudio::DeviceInfo info;
+  
+    // Create an api map.
+  std::map<int, std::string> apiMap;
+  apiMap[RtAudio::MACOSX_CORE] = "OS-X Core Audio";
+  apiMap[RtAudio::WINDOWS_ASIO] = "Windows ASIO";
+  apiMap[RtAudio::WINDOWS_DS] = "Windows Direct Sound";
+  apiMap[RtAudio::UNIX_JACK] = "Jack Client";
+  apiMap[RtAudio::LINUX_ALSA] = "Linux ALSA";
+  apiMap[RtAudio::LINUX_OSS] = "Linux OSS";
+  apiMap[RtAudio::RTAUDIO_DUMMY] = "RtAudio Dummy";
+  std::vector< RtAudio::Api > apis;
+  RtAudio :: getCompiledApi( apis );
+
+  std::cout << "\nCompiled APIs:\n";
+  for ( unsigned int i=0; i<apis.size(); i++ )
+    std::cout << "  " << apiMap[ apis[i] ] << std::endl;
+ 
+   std::cout << "\nCurrent API: " << apiMap[ adac.getCurrentApi() ] << std::endl;
+
+  unsigned int devices = adac.getDeviceCount();
+  std::cout << "\nFound " << devices << " device(s) ...\n";
+
+  for (unsigned int i=0; i<devices; i++) {
+    info = adac.getDeviceInfo(i);
+
+    std::cout << "\nDevice Name = " << info.name << '\n';
+    if ( info.probed == false )
+      std::cout << "Probe Status = UNsuccessful\n";
+    else {
+      std::cout << "Probe Status = Successful\n";
+      std::cout << "Output Channels = " << info.outputChannels << '\n';
+      std::cout << "Input Channels = " << info.inputChannels << '\n';
+      std::cout << "Duplex Channels = " << info.duplexChannels << '\n';
+      if ( info.isDefaultOutput ) std::cout << "This is the default output device.\n";
+      else std::cout << "This is NOT the default output device.\n";
+      if ( info.isDefaultInput ) std::cout << "This is the default input device.\n";
+      else std::cout << "This is NOT the default input device.\n";
+      if ( info.nativeFormats == 0 )
+        std::cout << "No natively supported data formats(?)!";
+      else {
+        std::cout << "Natively supported data formats:\n";
+        if ( info.nativeFormats & RTAUDIO_SINT8 )
+          std::cout << "  8-bit int\n";
+        if ( info.nativeFormats & RTAUDIO_SINT16 )
+          std::cout << "  16-bit int\n";
+        if ( info.nativeFormats & RTAUDIO_SINT24 )
+          std::cout << "  24-bit int\n";
+        if ( info.nativeFormats & RTAUDIO_SINT32 )
+          std::cout << "  32-bit int\n";
+        if ( info.nativeFormats & RTAUDIO_FLOAT32 )
+          std::cout << "  32-bit float\n";
+        if ( info.nativeFormats & RTAUDIO_FLOAT64 )
+          std::cout << "  64-bit float\n";
+      }
+      if ( info.sampleRates.size() < 1 )
+        std::cout << "No supported sample rates found!";
+      else {
+        std::cout << "Supported sample rates = ";
+        for (unsigned int j=0; j<info.sampleRates.size(); j++)
+          std::cout << info.sampleRates[j] << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
+  std::cout << std::endl;
+ 
+ 
+ 
+ 
+  
 
   if ( argc < 2 || argc > 6 ) usage();
 
@@ -253,8 +333,13 @@ int main( int argc, char *argv[] )
   iparameters.deviceId = adac.getDefaultInputDevice();
   iparameters.nChannels = 1;
   unsigned int bufferFrames = RT_BUFFER_SIZE;
+  
+    // /*atr* Let RtAudio print messages to stderr.
+  adac.showWarnings( true );
+  
   try {
     adac.openStream( &oparameters, &iparameters, format, (unsigned int)Stk::sampleRate(), &bufferFrames, &tick, (void *)&data );
+    std::cout << "opened the adac stream\n";
   }
   catch ( RtAudioError& error ) {
     error.printMessage();
@@ -268,6 +353,7 @@ int main( int argc, char *argv[] )
 
   // If realtime output, set our callback function and start the dac.
   try {
+	std::cout << "\n  startSteam\n";  
     adac.startStream();
   }
   catch ( RtAudioError &error ) {
