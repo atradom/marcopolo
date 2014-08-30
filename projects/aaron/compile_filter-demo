@@ -1,0 +1,4 @@
+#! /bin/sh
+# compile command for filter demo
+
+g++ -Wall -D__LITTLE_ENDIAN__ -I/usr/include/stk -o filter-demo filter-demo.cpp -lstk

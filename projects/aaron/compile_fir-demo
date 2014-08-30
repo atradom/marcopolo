@@ -1,0 +1,4 @@
+#! /bin/sh
+# compile command for fir demo
+
+g++ -Wall -D__LITTLE_ENDIAN__ -I/usr/include/stk -o fir-demo fir-demo.cpp -lstk

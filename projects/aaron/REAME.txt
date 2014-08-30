@@ -1,0 +1,14 @@
+
+filter demo - compiling
+
+first, I compiled the stk libraries by going to the src directory and typing make
+
+then, I copied ~/GitHub/atradom/stk/src/libstk.a to /usr/lib/
+and the contents of ~/GitHub/atradom/stk/include to /usr/include/stk
+
+
+then you can compile with
+g++ -Wall -D__LITTLE_ENDIAN__ -I/usr/include/stk -o filter-demo filter-demo.cpp -lstk
+
+
+
