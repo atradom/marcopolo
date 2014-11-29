@@ -1,0 +1,3 @@
+#! /usr/bin/wish -f
+button .b -text "Hello" -command exit
+pack .b
