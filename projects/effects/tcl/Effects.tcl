@@ -92,6 +92,8 @@ radiobutton .effectSelect.nrev -text "NRev Reverb" -variable effect -relief flat
     -value 6 -command {changeEffect "ControlChange    0.0 1 " 20 $effect}
 radiobutton .effectSelect.freerev -text "FreeVerb" -variable effect -relief flat \
     -value 7 -command {changeEffect "ControlChange    0.0 1 " 20 $effect}
+radiobutton .effectSelect.filter -text "FIR filter" -variable effect -relief flat \
+    -value 8 -command {changeEffect "ControlChange    0.0 1 " 20 $effect}
 
 pack .effectSelect.echo -pady 2 -padx 5 -side top -anchor w -fill x
 pack .effectSelect.shifter -pady 2 -padx 5 -side top -anchor w -fill x
@@ -101,6 +103,7 @@ pack .effectSelect.prcrev -pady 2 -padx 5 -side top -anchor w -fill x
 pack .effectSelect.jcrev -pady 2 -padx 5 -side top -anchor w -fill x
 pack .effectSelect.nrev -pady 2 -padx 5 -side top -anchor w -fill x
 pack .effectSelect.freerev -pady 2 -padx 5 -side top -anchor w -fill x
+pack .effectSelect.filter -pady 2 -padx 5 -side top -anchor w -fill x
 
 
 proc myExit {} {
@@ -152,6 +155,10 @@ proc changeEffect {tag value1 value2 } {
     if ($value2==7) {
         .left.effect1 config -state normal -label "Damping (low to high)"
         .left.effect2 config -state normal -label "Room Size (comb feedback gain)"
+    }
+    if ($value2==8) {
+        .left.effect1 config -state normal -label "Disabled"
+        .left.effect2 config -state normal -label "Disabled"
     }
     puts $outID [format "%s %i %f" $tag $value1 $value2]
     flush $outID

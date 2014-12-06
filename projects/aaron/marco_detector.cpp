@@ -3,16 +3,21 @@
 
 #include "Skini.h"
 #include "SKINImsg.h"
-#include "Fir.h"	//atr
+#include "FileWvIn.h"		// Stk for reading wav files
+#include "Fir.h"			// Stk FIR filter
 #include "Messager.h"
-#include "RtAudio.h"
+#include "RtAudio.h"		// Stk Realtime audio
 
+#include <cstdlib>
+#include <stdlib.h>
 #include <signal.h>
 #include <cstring>
 #include <iostream>
 #include <algorithm>
 #include <map>
 using std::min;
+
+
 
 using namespace stk;
 
@@ -35,131 +40,44 @@ http://t-filter.appspot.com
 
 sampling frequency: 44100 Hz
 
-* 0 Hz - 400 Hz
+* 0 Hz - 4000 Hz
   gain = 1
   desired ripple = 5 dB
-  actual ripple = 0.9072360190440464 dB
+  actual ripple = 3.6483420584837547 dB
 
-* 1000 Hz - 22050 Hz
+* 7000 Hz - 22050 Hz
   gain = 0
-  desired attenuation = -20 dB
-  actual attenuation = -33.103519146838195 dB
+  desired attenuation = -30 dB
+  actual attenuation = -31.13452537592425 dB
 
 */
 
-
-  #define FILTER_TAP_NUM 103
-  
- 
+#define FILTER_TAP_NUM 15
 
 StkFloat fir[FILTER_TAP_NUM] = {
-  -0.012197920805787278,
-  -0.002336589140620781,
-  -0.0025194598432212827,
-  -0.002683416037815436,
-  -0.002823429184128793,
-  -0.00293418668031811,
-  -0.0030104361147199605,
-  -0.0030496282697988304,
-  -0.0030464438222232593,
-  -0.0029949163618251218,
-  -0.0028940985241409376,
-  -0.0027368585998133565,
-  -0.002521119850728108,
-  -0.0022437068528243427,
-  -0.00190148468332338,
-  -0.0014937632705069163,
-  -0.001015820478360003,
-  -0.000467246012237626,
-  0.00015210956444079113,
-  0.0008435515745727611,
-  0.0016051013437455518,
-  0.0024351944901084676,
-  0.0033356412950012212,
-  0.004286091976426882,
-  0.005330605145711128,
-  0.006401235531185365,
-  0.00752717076180959,
-  0.008710198231310577,
-  0.009937867692188263,
-  0.011197413901675534,
-  0.01247898994988451,
-  0.013779349043195914,
-  0.015094537309054343,
-  0.016412012321639538,
-  0.01772865618927969,
-  0.019031408043286197,
-  0.020311723116909923,
-  0.021560218864397934,
-  0.02276716788787066,
-  0.02392560968568203,
-  0.025025794409314683,
-  0.02605959753521299,
-  0.027021192584589307,
-  0.027902713776822696,
-  0.02869805780399121,
-  0.02940164493135505,
-  0.030003523736723,
-  0.030507470101810413,
-  0.030895798092277625,
-  0.031177528730376925,
-  0.03135087856049692,
-  0.03140933165628752,
-  0.03135087856049692,
-  0.031177528730376925,
-  0.030895798092277625,
-  0.030507470101810413,
-  0.030003523736723,
-  0.02940164493135505,
-  0.028698057803991213,
-  0.027902713776822696,
-  0.027021192584589307,
-  0.02605959753521299,
-  0.025025794409314683,
-  0.02392560968568203,
-  0.02276716788787066,
-  0.021560218864397934,
-  0.020311723116909923,
-  0.019031408043286197,
-  0.01772865618927969,
-  0.016412012321639538,
-  0.015094537309054343,
-  0.013779349043195914,
-  0.01247898994988451,
-  0.011197413901675534,
-  0.009937867692188263,
-  0.008710198231310577,
-  0.00752717076180959,
-  0.006401235531185365,
-  0.005330605145711128,
-  0.004286091976426882,
-  0.0033356412950012212,
-  0.0024351944901084676,
-  0.0016051013437455518,
-  0.0008435515745727611,
-  0.00015210956444079113,
-  -0.000467246012237626,
-  -0.001015820478360003,
-  -0.0014937632705069163,
-  -0.00190148468332338,
-  -0.0022437068528243427,
-  -0.002521119850728108,
-  -0.0027368585998133565,
-  -0.0028940985241409376,
-  -0.0029949163618251196,
-  -0.0030464438222232593,
-  -0.0030496282697988304,
-  -0.0030104361147199605,
-  -0.00293418668031811,
-  -0.002823429184128793,
-  -0.002683416037815436,
-  -0.0025194598432212827,
-  -0.002336589140620781,
-  -0.012197920805787278
+  -0.02566254990456756,
+  -0.022132905716131836,
+  -0.006844859170844624,
+  0.03483590625488368,
+  0.09942041492575888,
+  0.17128018762092148,
+  0.22789464472218476,
+  0.24939961132445515,
+  0.22789464472218476,
+  0.17128018762092148,
+  0.09942041492575888,
+  0.03483590625488368,
+  -0.006844859170844624,
+  -0.02213290571613185,
+  -0.02566254990456756
 };
 
- std::vector<StkFloat> fir_coeff(fir, fir + sizeof(fir) / sizeof(StkFloat) );
 
+std::vector<StkFloat> fir_coeff(fir, fir + sizeof(fir) / sizeof(StkFloat) );
+
+StkFrames frames;						// used to read in the marco wavfile
+std::vector<StkFloat> marco;			// marco audio sequence
+std::vector<StkFloat> marcoFilt;		// marco matched filter coefficients
 
 
 bool done;
@@ -170,6 +88,7 @@ static void finish(int ignore){ done = true; }
 struct TickData {
   unsigned int effectId;	// current effect ID
   Fir		filter;			// id=8  *atr
+  Fir		Matched_filter;
   Messager messager;		// for reading and parsing control messages
   Skini::Message message;	// control message
   StkFloat lastSample;
@@ -181,10 +100,8 @@ struct TickData {
 
   // Default constructor.
   TickData()
-    : effectId(0), t60(1.0), counter(0),
-      settling( false ), haveMessage( false ) {
-	filter.setCoefficients(fir_coeff, false);	
-	}
+    : effectId(8), t60(1.0), counter(0),
+      settling( false ), haveMessage( false ) {}
 };
 
 #define DELTA_CONTROL_TICKS 64 // default sample frames between control input checks
@@ -195,11 +112,11 @@ struct TickData {
 // The processMessage() function encapsulates the handling of control
 // messages.  It can be easily relocated within a program structure
 // depending on the desired scheduling scheme.
+// *atr - we may not need this in the end, but kept it for testing
 void processMessage( TickData* data )
 {
   register unsigned int value1 = data->message.intValues[0];
-  register StkFloat value2 = data->message.floatValues[1];
-  register StkFloat temp = value2 * ONE_OVER_128;
+  //register StkFloat value2 = data->message.floatValues[1];
   
   
   switch( data->message.type ) {
@@ -224,9 +141,10 @@ void processMessage( TickData* data )
     switch ( value1 ) {
 
     case 20: { // effect type change
-      std::cout << "effect type change\n";
+      std::cout << "effect type change=";
       int type = data->message.intValues[1];
       data->effectId = (unsigned int) type;
+       std::cout << type << "\n";
       break;
     }
 
@@ -295,6 +213,11 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 		*oSamples++ = sample; // two channels interleaved
         *oSamples++ = sample;
       }
+      else if (data->effectId==9) {    // atr - matched filter
+		sample = data->Matched_filter.tick(*iSamples++);
+		*oSamples++ = sample; // two channels interleaved
+        *oSamples++ = sample;
+      }
       else { 
         *oSamples++ = 0;
         *oSamples++ = 0;
@@ -315,7 +238,11 @@ int main( int argc, char *argv[] )
   TickData data;
   RtAudio adac;
   int i;
-  
+  unsigned int channels=1;		// number of channels in the input file
+  FileWvIn sndPattern;			// sound pattern we want to match
+  double rate = 1.0;			// file data rates
+  double in_rate;
+   
   RtAudio::DeviceInfo info;
   
     // Create an api map.
@@ -445,6 +372,51 @@ int main( int argc, char *argv[] )
     error.printMessage();
     goto cleanup;
   }
+
+
+// set up the matched filter (move to a function later?)
+  // Try to load the soundfile.
+  try {
+    sndPattern.openFile("Noisy_Miner_chirp_mono.wav" );
+  }
+  catch ( StkError & ) {
+    exit( 1 );
+  }
+  
+  // Set input read rate based on the default STK sample rate.
+
+  in_rate =  sndPattern.getFileRate();
+  rate = in_rate / Stk::sampleRate();
+  sndPattern.setRate( rate );  
+  
+  // Find out how many channels we have.
+  channels = sndPattern.channelsOut();
+  std::cout << "input file has " << channels << " channels at "<< in_rate <<  "Hz  sample rate " << std::endl;
+
+  std::cout << " we want to run a rate of " << Stk::sampleRate() << " and will sample the file by a factor of "  << rate << std::endl;
+
+  std::cout << " the file size is " << sndPattern.getSize() << std::endl;
+
+  // Resize the StkFrames object appropriately.
+  frames.resize( sndPattern.getSize(), channels );
+
+
+	sndPattern.tick( frames );
+	std::cout << frames.size() << "\n";
+  
+  
+ // now, store the whole input sequence into a vector 
+  for ( unsigned int i=0; i<frames.size(); i++ ) {
+	marco.push_back(frames[i]);
+	std::cout << frames[i] << "\n";
+  }
+
+// now create the matched filter coefficients by reversing the input sequence
+  marcoFilt=marco;
+  std::reverse(marcoFilt.begin(), marcoFilt.end());
+  data.Matched_filter.setCoefficients(marcoFilt, false);
+  data.filter.setCoefficients(fir_coeff, false);
+
 
   // Setup finished.
   while ( !done ) {

@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
   adac.showWarnings( true );
 
   // Set the same number of channels for both input and output.
-  unsigned int bufferFrames = 512;
+  unsigned int bufferFrames = 128;
   RtAudio::StreamParameters iParams, oParams;
   if ( iDevice == 0 )
     iParams.deviceId = adac.getDefaultInputDevice();

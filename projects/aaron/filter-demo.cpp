@@ -6,7 +6,7 @@ using namespace stk;
 
 int main()
 {
-  StkFrames output( 100, 1 );   // initialize StkFrames to 100 frames and 1 channel (default: interleaved)
+  StkFrames output( 20, 1 );   // initialize StkFrames to 20 frames and 1 channel (default: interleaved)
   output[0] = 1.0;				// pre-charge the filter so we get impulse response
 
   std::vector<StkFloat> numerator( 5, 0.1 ); // create and initialize numerator coefficients (5 elements of 0.1)

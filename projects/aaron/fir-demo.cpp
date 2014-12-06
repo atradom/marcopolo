@@ -9,12 +9,12 @@ using namespace stk;
 
 int main()
 {
- const unsigned int marcoLength = 20000;
+ const unsigned int marcoLength = 10000;
  unsigned int channels = 1;	
   //const unsigned int Fs = 44100;	// audio sample rate
   FileWvOut outfile;
   
-  StkFrames output( marcoLength, 1 );   // initialize StkFrames to 100 frames and 1 channel (default: interleaved)
+  StkFrames output( marcoLength, 1 );   // initialize StkFrames to marcoLength frames and 1 channel (default: interleaved)
   output[0] = 1.0;				// pre-charge the filter so we get impulse response
 
   //std::vector<StkFloat> numerator( 5, 0.1 ); // create and initialize numerator coefficients (5 elements of 0.1)
@@ -48,10 +48,16 @@ int main()
   marcoFilt=marco;
   std::reverse(marcoFilt.begin(), marcoFilt.end());
   
-  for (std::vector<StkFloat>::iterator it=marcoFilt.begin(); it !=marcoFilt.end(); it++) { 
-	  //std::cout << *it << ", "; 
+  std::vector<StkFloat>::iterator it1;
+  std::vector<StkFloat>::iterator it2;
+  it2 = marco.begin();		// pointer to start of marco sequence
+  
+  
+  for (it1=marcoFilt.begin(); it1 !=marcoFilt.end(); it1++) { 
+	  std::cout << *it1 << ", "<< *it2 << std::endl;
+	  it2++; 
   } 
-  //std::cout << "end of matched filter pattern" << std::endl;
+//  std::cout << "end of matched filter pattern" << std::endl;
   
   
   
@@ -66,17 +72,17 @@ int main()
   //denominator.push_back( -0.5 );
 
 
-  Fir filter( marcoFilt );		// create the filter object using the IIR constructor
+  Fir filter( marcoFilt );		// create the filter object using the FIR constructor
 
-  //std::cout << "impulse response of matched filter" << std::endl;
+//  std::cout << "impulse response of matched filter" << std::endl;
   filter.tick( output );					// execute the filter on the frame
   outfile.tick(output);
   
   // print the impulse response
-  for ( unsigned int i=0; i<output.size(); i++ ) {
-    //std::cout << "i = " << i << " : output = " << output[i] << std::endl;
+//  for ( unsigned int i=0; i<output.size(); i++ ) {
+//    std::cout << "i = " << i << " : output = " << output[i] << std::endl;
     //std::cout << output[i] << std::endl;		// write the impulse response to the standard output
-  }
+//  }
   
   
   return 0;

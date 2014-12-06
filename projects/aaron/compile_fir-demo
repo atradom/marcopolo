@@ -1,4 +1,4 @@
 #! /bin/sh
-# compile command for fir demo
+# compile command for marco generator
 
-g++ -Wall -D__LITTLE_ENDIAN__ -I/usr/include/stk -o fir-demo fir-demo.cpp -lstk
+g++ -Wall -D__LITTLE_ENDIAN__ -I/usr/include/stk -o marco-generator marco_generator.cpp -lstk

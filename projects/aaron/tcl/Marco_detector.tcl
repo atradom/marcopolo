@@ -6,8 +6,8 @@ set outID "stdout"
 set commtype "stdout"
 
 # Configure main window
-wm title . "STK Effects Controller"
-wm iconname . "Effects"
+wm title . "Matched Filter Controller"
+wm iconname . "UCM"
 . config -bg black
 
 # Configure "communications" menu
@@ -22,11 +22,11 @@ menu .menu.communication -tearoff 0
 . configure -menu .menu
 
 # Configure title display
-label .title -text "STK Effects Controller" \
+label .title -text "Matched Filter Controller" \
 				-font {Times 14 bold} -background white \
 				-foreground darkred -relief raised
 
-label .title2 -text "by Gary P. Scavone\n Music Technology, McGill University" \
+label .title2 -text "using Stk toolkit (atr 11/28/14)" \
 				-font {Times 12 bold} -background white \
 				-foreground darkred -relief raised
 
@@ -77,7 +77,7 @@ frame .effectSelect -bg black
 pack .effectSelect -side right -padx 5 -pady 5
 
 
-radiobutton .effectSelect.filter -text "FIR filter" -variable effect -relief flat \
+radiobutton .effectSelect.filter -text "Lowpass FIR filter" -variable effect -relief flat \
     -value 8 -command {changeEffect "ControlChange    0.0 1 " 20 $effect}
 radiobutton .effectSelect.matched -text "Matched filter" -variable effect -relief flat \
     -value 9 -command {changeEffect "ControlChange    0.0 1 " 20 $effect}

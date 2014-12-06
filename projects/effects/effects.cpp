@@ -1,4 +1,5 @@
 /**************  Effects Program  *********************/
+// atr 11/26/14 - tried to add an FIR filter
 
 #include "Skini.h"
 #include "SKINImsg.h"
@@ -11,6 +12,7 @@
 #include "PitShift.h"
 #include "LentPitShift.h"
 #include "Chorus.h"
+#include "Fir.h"	//atr
 #include "Messager.h"
 #include "RtAudio.h"
 
@@ -33,37 +35,180 @@ void usage(void) {
   exit(0);
 }
 
+
+
+/*
+
+FIR filter designed with
+http://t-filter.appspot.com
+
+sampling frequency: 44100 Hz
+
+* 0 Hz - 400 Hz
+  gain = 1
+  desired ripple = 5 dB
+  actual ripple = 0.9072360190440464 dB
+
+* 1000 Hz - 22050 Hz
+  gain = 0
+  desired attenuation = -20 dB
+  actual attenuation = -33.103519146838195 dB
+
+*/
+
+
+  #define FILTER_TAP_NUM 103
+  
+ 
+
+StkFloat fir[FILTER_TAP_NUM] = {
+  -0.012197920805787278,
+  -0.002336589140620781,
+  -0.0025194598432212827,
+  -0.002683416037815436,
+  -0.002823429184128793,
+  -0.00293418668031811,
+  -0.0030104361147199605,
+  -0.0030496282697988304,
+  -0.0030464438222232593,
+  -0.0029949163618251218,
+  -0.0028940985241409376,
+  -0.0027368585998133565,
+  -0.002521119850728108,
+  -0.0022437068528243427,
+  -0.00190148468332338,
+  -0.0014937632705069163,
+  -0.001015820478360003,
+  -0.000467246012237626,
+  0.00015210956444079113,
+  0.0008435515745727611,
+  0.0016051013437455518,
+  0.0024351944901084676,
+  0.0033356412950012212,
+  0.004286091976426882,
+  0.005330605145711128,
+  0.006401235531185365,
+  0.00752717076180959,
+  0.008710198231310577,
+  0.009937867692188263,
+  0.011197413901675534,
+  0.01247898994988451,
+  0.013779349043195914,
+  0.015094537309054343,
+  0.016412012321639538,
+  0.01772865618927969,
+  0.019031408043286197,
+  0.020311723116909923,
+  0.021560218864397934,
+  0.02276716788787066,
+  0.02392560968568203,
+  0.025025794409314683,
+  0.02605959753521299,
+  0.027021192584589307,
+  0.027902713776822696,
+  0.02869805780399121,
+  0.02940164493135505,
+  0.030003523736723,
+  0.030507470101810413,
+  0.030895798092277625,
+  0.031177528730376925,
+  0.03135087856049692,
+  0.03140933165628752,
+  0.03135087856049692,
+  0.031177528730376925,
+  0.030895798092277625,
+  0.030507470101810413,
+  0.030003523736723,
+  0.02940164493135505,
+  0.028698057803991213,
+  0.027902713776822696,
+  0.027021192584589307,
+  0.02605959753521299,
+  0.025025794409314683,
+  0.02392560968568203,
+  0.02276716788787066,
+  0.021560218864397934,
+  0.020311723116909923,
+  0.019031408043286197,
+  0.01772865618927969,
+  0.016412012321639538,
+  0.015094537309054343,
+  0.013779349043195914,
+  0.01247898994988451,
+  0.011197413901675534,
+  0.009937867692188263,
+  0.008710198231310577,
+  0.00752717076180959,
+  0.006401235531185365,
+  0.005330605145711128,
+  0.004286091976426882,
+  0.0033356412950012212,
+  0.0024351944901084676,
+  0.0016051013437455518,
+  0.0008435515745727611,
+  0.00015210956444079113,
+  -0.000467246012237626,
+  -0.001015820478360003,
+  -0.0014937632705069163,
+  -0.00190148468332338,
+  -0.0022437068528243427,
+  -0.002521119850728108,
+  -0.0027368585998133565,
+  -0.0028940985241409376,
+  -0.0029949163618251196,
+  -0.0030464438222232593,
+  -0.0030496282697988304,
+  -0.0030104361147199605,
+  -0.00293418668031811,
+  -0.002823429184128793,
+  -0.002683416037815436,
+  -0.0025194598432212827,
+  -0.002336589140620781,
+  -0.012197920805787278
+};
+
+ std::vector<StkFloat> fir_coeff(fir, fir + sizeof(fir) / sizeof(StkFloat) );
+
+
+
 bool done;
 static void finish(int ignore){ done = true; }
 
 // The TickData structure holds all the class instances and data that
 // are shared by the various processing functions.
 struct TickData {
-  unsigned int effectId;
-  PRCRev   prcrev;
-  JCRev    jcrev;
-  NRev     nrev;
-  FreeVerb frev;
-  Echo     echo;
-  PitShift shifter;
-  LentPitShift lshifter;
-  Chorus   chorus;
-  Envelope envelope;
-  Messager messager;
-  Skini::Message message;
+  unsigned int effectId;	// current effect ID
+  PRCRev   prcrev;			// id=4
+  JCRev    jcrev;			// id=5
+  NRev     nrev;			// id=6
+  FreeVerb frev;			// id=7
+  Echo     echo;			// id=0
+  PitShift shifter;			// id=1
+  LentPitShift lshifter;	// id=2
+  Chorus   chorus;			// id=3
+  Fir		filter;			// id=8  *atr
+  Envelope envelope;		// linear envelope generator
+  Messager messager;		// for reading and parsing control messages
+  Skini::Message message;	// control message
   StkFloat lastSample;
-  StkFloat t60;
+  StkFloat t60;				// T60 decay time (for reverb effects)
   int counter;
-  bool settling;
-  bool haveMessage;
+  bool settling;			// true if in settling state
+  bool haveMessage;			// if a control message is available
+
 
   // Default constructor.
   TickData()
     : effectId(0), t60(1.0), counter(0),
-      settling( false ), haveMessage( false ) {}
+      settling( false ), haveMessage( false ) {
+	//filter.setCoefficients(fir_coeff, false);	
+	}
 };
 
 #define DELTA_CONTROL_TICKS 64 // default sample frames between control input checks
+
+
+
 
 // The processMessage() function encapsulates the handling of control
 // messages.  It can be easily relocated within a program structure
@@ -73,7 +218,8 @@ void processMessage( TickData* data )
   register unsigned int value1 = data->message.intValues[0];
   register StkFloat value2 = data->message.floatValues[1];
   register StkFloat temp = value2 * ONE_OVER_128;
-
+  
+  
   switch( data->message.type ) {
 
   case __SK_Exit_:
@@ -179,7 +325,12 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
     counter = min( nTicks, data->counter );
     data->counter -= counter;
     for ( i=0; i<counter; i++ ) {
-      if ( data->effectId < 3 ) { // Echo, PitShift and LentPitShift ... mono output
+      if (data->effectId==8) {    // atr - filter
+		sample = data->filter.tick(*iSamples++);
+		*oSamples++ = sample; // two channels interleaved
+        *oSamples++ = sample;
+      }
+      else if ( data->effectId < 3 ) { // Echo, PitShift and LentPitShift ... mono output
         if ( data->effectId == 0 )
           sample = data->envelope.tick() * data->echo.tick( *iSamples++ );
         else if ( data->effectId == 1 )

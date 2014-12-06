@@ -54,7 +54,7 @@ int main()
 	// we want the chirps to be at the same frequency as they were recorded
 	// so we adjust the looping rate of recorded loop
 	// if you make the frequency negative, it reverses the loop!
-	input.setFrequency(-1.0/inputDuration);
+	input.setFrequency(1.0/inputDuration);
 	
 	// run the oscillator for 40000 samples, writing to the output file
 	for (int i=0; i<nFrames; i++){
