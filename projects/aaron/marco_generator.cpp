@@ -62,7 +62,7 @@ int main()
 
   // Try to load the soundfile.
   try {
-    input.openFile("Noisy_Miner_chirp_stereo.wav" );
+    input.openFile("Noisy_Miner_chirp_mono.wav" );
   }
   catch ( StkError & ) {
     exit( 1 );
