@@ -22,7 +22,7 @@ LIBRARY = -lpthread -lasound -lm
 
 REALTIME = yes
 ifeq ($(REALTIME),yes)
-  PROGRAMS += marco_generator
+  PROGRAMS += marco_generator marco_detector marco_tester rtsine crtsine 
 endif
 
 
@@ -60,6 +60,15 @@ fir-demo: fir-demo.cpp Stk.o Fir.o FileWrite.o FileWvOut.o
 marco_generator: marco_generator.cpp Stk.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtAudio.o
 	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_generator marco_generator.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
 
+marco_detector: marco_detector.cpp Stk.o Mutex.o Thread.o Socket.o TcpServer.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtMidi.o RtAudio.o Messager.o
+	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_detector marco_detector.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/Skini.o  $(OBJECT_PATH)/Thread.o $(OBJECT_PATH)/Socket.o $(OBJECT_PATH)/RtMidi.o $(OBJECT_PATH)/TcpServer.o $(OBJECT_PATH)/Messager.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
+
+marco_tester: marco_tester.cpp Stk.o Mutex.o Thread.o Socket.o TcpServer.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtMidi.o RtAudio.o Messager.o
+	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_tester marco_tester.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/Skini.o  $(OBJECT_PATH)/Thread.o $(OBJECT_PATH)/Socket.o $(OBJECT_PATH)/RtMidi.o $(OBJECT_PATH)/TcpServer.o $(OBJECT_PATH)/Messager.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
+
+
+
+
 sineosc: sineosc.cpp Stk.o FileRead.o FileWvIn.o FileLoop.o FileWrite.o FileWvOut.o
 	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o sineosc sineosc.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/FileLoop.o $(LIBRARY)
 
@@ -67,4 +76,10 @@ sineosc: sineosc.cpp Stk.o FileRead.o FileWvIn.o FileLoop.o FileWrite.o FileWvOu
 resonance: resonance.cpp Stk.o FileWrite.o FileWvOut.o BiQuad.o Noise.o
 	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o resonance resonance.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/BiQuad.o $(OBJECT_PATH)/Noise.o $(OBJECT_PATH)/FileWvOut.o $(LIBRARY)
 
+rtsine: rtsine.cpp Stk.o SineWave.o RtWvOut.o RtAudio.o Mutex.o
+	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o rtsine rtsine.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/SineWave.o $(OBJECT_PATH)/RtWvOut.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
+
+
+crtsine: crtsine.cpp Stk.o SineWave.o RtAudio.o
+	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o crtsine crtsine.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/SineWave.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
 
