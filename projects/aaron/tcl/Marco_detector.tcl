@@ -1,7 +1,7 @@
-set mixlevel 64.0
-set effect1 64.0
+set mixlevel 38.0
+set effect1 9.0
 set effect2 64.0
-set effect 8
+set effect 9
 set outID "stdout"
 set commtype "stdout"
 
@@ -50,13 +50,13 @@ frame .left -bg black
 
 scale .left.effectsmix -from 0 -to 127 -length 400 \
 -command {printWhatz "ControlChange    0.0 1 " 44} \
--orient horizontal -label "Effects Mix (0% effect - 100% effect)" \
+-orient horizontal -label "Input Gain" \
 -tickinterval 32 -showvalue true -bg grey66 \
 -variable mixlevel
 
 scale .left.effect1 -from 0 -to 127 -length 400 \
 -command {printWhatz "ControlChange    0.0 1 " 22} \
--orient horizontal -label "Echo Delay" \
+-orient horizontal -label "Detection Threshold" \
 -tickinterval 32 -showvalue true -bg grey66 \
 -variable effect1
 
@@ -121,7 +121,7 @@ proc changeEffect {tag value1 value2 } {
         .left.effect2 config -state normal -label "Disabled"
     }
     if ($value2==9) {
-        .left.effect1 config -state normal -label "Disabled"
+        .left.effect1 config -state normal -label "Detection Threshold"
         .left.effect2 config -state normal -label "Disabled"
     }
     puts $outID [format "%s %i %f" $tag $value1 $value2]

@@ -8,6 +8,9 @@
 #include "Messager.h"
 #include "RtAudio.h"		// Stk Realtime audio
 
+#include "MFilt.h"			// My new matched filter class derived from FIR
+							// I put this in the Stk include directory (is that correct?)
+
 #include <cstdlib>
 #include <stdlib.h>
 #include <signal.h>
@@ -15,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
+#include <time.h>
 using std::min;
 
 
@@ -88,7 +92,7 @@ static void finish(int ignore){ done = true; }
 struct TickData {
   unsigned int effectId;	// current effect ID
   Fir		filter;			// id=8  *atr
-  Fir		Matched_filter;
+  MFilt		Matched_filter;
   Messager messager;		// for reading and parsing control messages
   Skini::Message message;	// control message
   StkFloat lastSample;
@@ -96,12 +100,19 @@ struct TickData {
   int counter;
   bool settling;			// true if in settling state
   bool haveMessage;			// if a control message is available
+  long int start_time;			// for timing
+  long int time_difference;		// for timing
+  struct timespec gettime_now;	// for timing  (.tv_sec = seconds since 1970, .tv_nsec=nanoseconds into the current second
+  StkFloat snapshot;			// instantaneous audio output for debuggin 
 
 
   // Default constructor.
   TickData()
-    : effectId(8), t60(1.0), counter(0),
-      settling( false ), haveMessage( false ) {}
+    : effectId(9), t60(1.0), counter(0),
+      settling( false ), haveMessage( false ) {
+		  Matched_filter.setThreshold(0.06);
+		  
+		  }
 };
 
 #define DELTA_CONTROL_TICKS 64 // default sample frames between control input checks
@@ -116,7 +127,8 @@ struct TickData {
 void processMessage( TickData* data )
 {
   register unsigned int value1 = data->message.intValues[0];
-  //register StkFloat value2 = data->message.floatValues[1];
+  register StkFloat value2 = data->message.floatValues[1];
+  register StkFloat temp = value2 * ONE_OVER_128;
   
   
   switch( data->message.type ) {
@@ -149,9 +161,10 @@ void processMessage( TickData* data )
     }
 
     case 22: // effect parameter change 1
-      std::cout << "effect param 1 change\n";
+      std::cout << "effect param 1 change: " << temp << "\n";
 //     data->echo.setDelay( (unsigned long) (temp * Stk::sampleRate() * 0.95) );
 //     data->lshifter.setShift( 1.4 * temp + 0.3 );
+		data->Matched_filter.setThreshold(temp);
       break;
 
     case 23: // effect parameter change 2
@@ -160,8 +173,8 @@ void processMessage( TickData* data )
       break;
 
     case 44: // effect mix
-      std::cout << "effect mix change\n";
-//     data->echo.setEffectMix( temp );
+      std::cout << "gain change:  " << temp << "\n";
+     data->Matched_filter.setGain( temp );
       break;
 
     default:
@@ -212,11 +225,14 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 		sample = data->filter.tick(*iSamples++);
 		*oSamples++ = sample; // two channels interleaved
         *oSamples++ = sample;
+        
       }
       else if (data->effectId==9) {    // atr - matched filter
-		sample = data->Matched_filter.tick(*iSamples++);
+		sample = data->Matched_filter.mtick(*iSamples++);
 		*oSamples++ = sample; // two channels interleaved
         *oSamples++ = sample;
+        data->snapshot = sample;
+        
       }
       else { 
         *oSamples++ = 0;
@@ -418,10 +434,31 @@ int main( int argc, char *argv[] )
   data.filter.setCoefficients(fir_coeff, false);
 
 
+// initialize the timer
+  clock_gettime(CLOCK_REALTIME, &data.gettime_now);		
+  data.start_time = data.gettime_now.tv_nsec;				   //(get nanosecond value)
+  
+
+
   // Setup finished.
   while ( !done ) {
     // Periodically check "done" status.
     Stk::sleep( 50 );
+    data.gettime_now = data.Matched_filter.getTriggerTime();
+    if (data.gettime_now.tv_nsec !=0) {
+		std::cout << "   *** trigger at =  " << data.gettime_now.tv_sec << " , " << data.gettime_now.tv_nsec << " ns\n";
+		data.Matched_filter.clearTrigger();
+	}
+    //std::cout <<  data.snapshot << " mf\n";
+    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
+    //data.time_difference = data.gettime_now.tv_nsec; // - data.start_time;
+    //std::cout << "time:" << data.time_difference << "\n";
+    
+    //data.gettime_now.tv_nsec = 0;
+    // std::cout << "   clock check1=  " << data.gettime_now.tv_nsec;
+    //clock_settime(CLOCK_REALTIME,  &data.gettime_now);  // * only works if you are root!!
+    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
+    //std::cout << "   clock check2=  " << data.gettime_now.tv_nsec;
   }
 
   // Shut down the output stream.

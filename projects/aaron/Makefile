@@ -18,7 +18,7 @@ DEFS     =   -DHAVE_GETTIMEOFDAY -D__LINUX_ALSA__
 DEFS    += -D__LITTLE_ENDIAN__
 CFLAGS   = -O3 -Wall
 CFLAGS  += -I$(INCLUDE) -I$(INCLUDE)/../src/include
-LIBRARY = -lpthread -lasound -lm
+LIBRARY = -lpthread -lasound -lm -lrt
 
 REALTIME = yes
 ifeq ($(REALTIME),yes)
@@ -60,8 +60,8 @@ fir-demo: fir-demo.cpp Stk.o Fir.o FileWrite.o FileWvOut.o
 marco_generator: marco_generator.cpp Stk.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtAudio.o
 	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_generator marco_generator.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
 
-marco_detector: marco_detector.cpp Stk.o Mutex.o Thread.o Skini.o Socket.o TcpServer.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtMidi.o RtAudio.o Messager.o
-	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_detector marco_detector.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/Skini.o  $(OBJECT_PATH)/Thread.o $(OBJECT_PATH)/Socket.o $(OBJECT_PATH)/RtMidi.o $(OBJECT_PATH)/TcpServer.o $(OBJECT_PATH)/Messager.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
+marco_detector: marco_detector.cpp Stk.o Mutex.o Thread.o Skini.o Socket.o TcpServer.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtMidi.o RtAudio.o Messager.o MFilt.o
+	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_detector marco_detector.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/Skini.o  $(OBJECT_PATH)/Thread.o $(OBJECT_PATH)/Socket.o $(OBJECT_PATH)/RtMidi.o $(OBJECT_PATH)/TcpServer.o $(OBJECT_PATH)/Messager.o $(OBJECT_PATH)/RtAudio.o $(OBJECT_PATH)/MFilt.o $(LIBRARY)
 
 marco_tester: marco_tester.cpp Stk.o Mutex.o Thread.o Skini.o Socket.o TcpServer.o Fir.o FileRead.o FileWrite.o FileWvIn.o FileWvOut.o RtMidi.o RtAudio.o Messager.o
 	$(CC) $(LDFLAGS) $(CFLAGS) $(DEFS) -o marco_tester marco_tester.cpp $(OBJECT_PATH)/Stk.o $(OBJECT_PATH)/Mutex.o $(OBJECT_PATH)/Fir.o $(OBJECT_PATH)/FileWrite.o $(OBJECT_PATH)/FileRead.o $(OBJECT_PATH)/FileWvIn.o $(OBJECT_PATH)/FileWvOut.o $(OBJECT_PATH)/Skini.o  $(OBJECT_PATH)/Thread.o $(OBJECT_PATH)/Socket.o $(OBJECT_PATH)/RtMidi.o $(OBJECT_PATH)/TcpServer.o $(OBJECT_PATH)/Messager.o $(OBJECT_PATH)/RtAudio.o $(LIBRARY)
