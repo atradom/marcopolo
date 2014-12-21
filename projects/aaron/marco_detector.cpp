@@ -109,7 +109,8 @@ struct TickData {
   struct timespec gettime_now;	// for timing  (.tv_sec = seconds since 1970, .tv_nsec=nanoseconds into the current second
   StkFloat snapshot;			// instantaneous audio output for debuggin 
   FileWvIn *poloFile;				// "Polo" sound file
-  bool triggered;			// Marco was heard, Polo is playing
+  bool triggered;			// Marco was heard
+  bool playingPolo;			// playing polo sound
 
   // Default constructor.
   TickData()
@@ -272,12 +273,11 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 			*oSamples++ = poloSample;
 			//std::cout << "p" << poloSample << " \n";
 
-
+			data->Matched_filter.clearTrigger();	// blank the detector while playing polo
 
 
 			if ( poloFile->isFinished() ) {
 				data->triggered = false;
-				data->Matched_filter.clearTrigger();
 				poloFile->reset();
 				std::cout << "finished playing polo\n";
 			}
