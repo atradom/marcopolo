@@ -252,16 +252,8 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
         
       }
       else if (data->effectId==9) {    // atr - matched filter
-		sample = data->Matched_filter.mtick(*iSamples++);  // run the filter for 1 sample
-        data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
-        
-        data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
-		//if ((data->gettime_now.tv_nsec !=0)) {
-		//	std::cout << "   *** polo at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
-		//}
-		
-		// if requested, keep playing the marco sound until done
-		if (data->triggered) {
+      
+		if (data->triggered) {  // state = playing marco sound
 			//std::cout << "want to play marco =" << data->triggered  << "\n"; 
 			
 			try {
@@ -279,7 +271,21 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 			}
 			*oSamples++ = marcoSample;	// the 2 output channels are interleaved, so insert 2 copies in the output stream
 			*oSamples++ = marcoSample;
+			sample = data->Matched_filter.mtick(0);  // run the matched filter with no input
+			data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
+
 			data->Matched_filter.clearTrigger();   // don't trigger on matched filter while playing
+		}
+		else {					// state = listening for polo sound
+			*oSamples++ = 0;	// send silence to speakers
+			*oSamples++ = 0;
+			sample = data->Matched_filter.mtick(*iSamples++);  // run the matched filter for 1 sample
+			data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
+			data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
+			//if ((data->gettime_now.tv_nsec !=0)) {
+			//	std::cout << "   *** polo at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
+			//}
+
 		}
 			
         

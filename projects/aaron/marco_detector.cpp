@@ -246,20 +246,9 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
         
       }
       else if (data->effectId==9) {    // atr - matched filter
-		sample = data->Matched_filter.mtick(*iSamples++);  // run the filter for 1 sample
-		//*oSamples++ = sample; // two channels interleaved
-        //*oSamples++ = sample;
-        data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
-        
-        data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
-		if ((data->gettime_now.tv_nsec !=0) & !data->triggered) {
-			//std::cout << "   *** trigger at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
-			data->triggered=true;
-			std::cout << "triggered =" << data->triggered  << "\n";
-		}
 		
 		// if we heard the Marco sound, then keep playing the polo sound until done, then reset the trigger
-		if (data->triggered) {
+		if (data->triggered) {  // state = heard marco, playing polo
 			//std::cout << "want to play polo =" << data->triggered  << "\n"; 
 			
 			try {
@@ -281,7 +270,25 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 				poloFile->reset();
 				std::cout << "finished playing polo\n";
 			}
+			
+			sample = data->Matched_filter.mtick(0);  // run the matched filter with blanked input because we are talking
+			data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
+ 
 		}
+		else {	// state = listening for marco
+			sample = data->Matched_filter.mtick(*iSamples++);  // run the matched filter for 1 sample
+			data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
+        
+			data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
+			if ((data->gettime_now.tv_nsec !=0) & !data->triggered) {
+				//std::cout << "   *** trigger at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
+				data->triggered=true;
+				std::cout << "triggered =" << data->triggered  << "\n";
+			}
+			*oSamples++ = 0;	// send silence to the speakers while listening for marco sound
+			*oSamples++ = 0;
+		}
+
         
       } // if effectId==9
       else { 
