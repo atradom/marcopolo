@@ -25,6 +25,7 @@ using std::min;
 
 using namespace stk;
 
+
 void usage(void) {
   // Error function in case of incorrect command-line argument specifications
   std::cout << "\nuseage: effects flags \n";
@@ -36,6 +37,7 @@ void usage(void) {
 }
 
 
+// global variables
 
 /*
 
@@ -80,12 +82,14 @@ StkFloat fir[FILTER_TAP_NUM] = {
 std::vector<StkFloat> fir_coeff(fir, fir + sizeof(fir) / sizeof(StkFloat) );
 
 StkFrames frames;						// used to read in the marco wavfile
+StkFrames poloframes;					// used to read in the polo wavfile
 std::vector<StkFloat> marco;			// marco audio sequence
 std::vector<StkFloat> marcoFilt;		// marco matched filter coefficients
 
 
 bool done;
 static void finish(int ignore){ done = true; }
+
 
 // The TickData structure holds all the class instances and data that
 // are shared by the various processing functions.
@@ -104,18 +108,24 @@ struct TickData {
   long int time_difference;		// for timing
   struct timespec gettime_now;	// for timing  (.tv_sec = seconds since 1970, .tv_nsec=nanoseconds into the current second
   StkFloat snapshot;			// instantaneous audio output for debuggin 
-
+  FileWvIn *poloFile;				// "Polo" sound file
+  bool triggered;			// Marco was heard, Polo is playing
 
   // Default constructor.
   TickData()
     : effectId(9), t60(1.0), counter(0),
-      settling( false ), haveMessage( false ) {
+      settling( false ), haveMessage( false ),
+      triggered(false) {
 		  Matched_filter.setThreshold(0.06);
 		  
 		  }
 };
 
 #define DELTA_CONTROL_TICKS 64 // default sample frames between control input checks
+
+
+
+
 
 
 
@@ -193,6 +203,11 @@ void processMessage( TickData* data )
   data->settling = true;
 }
 
+
+
+
+
+
 // The tick() function handles sample computation and scheduling of
 // control updates.  It will be called automatically by RtAudio when
 // the system needs a new buffer of audio samples.
@@ -202,8 +217,10 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
   TickData *data = (TickData *) dataPointer;
   register StkFloat *oSamples = (StkFloat *) outputBuffer, *iSamples = (StkFloat *) inputBuffer;
   register StkFloat sample;
+  StkFloat poloSample; // used when reading the polofile one sample at a time
  // Effect *effect;
   int i, counter, nTicks = (int) nBufferFrames;
+  FileWvIn *poloFile = (FileWvIn *) data->poloFile;   // pointer to the polo file we want to play if marco is detected
 
 
   while ( nTicks > 0 && !done ) {
@@ -228,23 +245,56 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
         
       }
       else if (data->effectId==9) {    // atr - matched filter
-		sample = data->Matched_filter.mtick(*iSamples++);
-		*oSamples++ = sample; // two channels interleaved
-        *oSamples++ = sample;
-        data->snapshot = sample;
+		sample = data->Matched_filter.mtick(*iSamples++);  // run the filter for 1 sample
+		//*oSamples++ = sample; // two channels interleaved
+        //*oSamples++ = sample;
+        data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
         
-      }
+        data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
+		if ((data->gettime_now.tv_nsec !=0) & !data->triggered) {
+			//std::cout << "   *** trigger at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
+			data->triggered=true;
+			std::cout << "triggered =" << data->triggered  << "\n";
+		}
+		
+		// if we heard the Marco sound, then keep playing the polo sound until done, then reset the trigger
+		if (data->triggered) {
+			//std::cout << "want to play polo =" << data->triggered  << "\n"; 
+			
+			try {
+				poloSample = poloFile->tick();
+			}
+			catch ( StkError & ) {
+				exit( 1 );
+			}
+			
+			*oSamples++ = poloSample;	// the 2 output channels are interleaved, so insert 2 copies in the output stream
+			*oSamples++ = poloSample;
+			//std::cout << "p" << poloSample << " \n";
+
+
+
+
+			if ( poloFile->isFinished() ) {
+				data->triggered = false;
+				data->Matched_filter.clearTrigger();
+				poloFile->reset();
+				std::cout << "finished playing polo\n";
+			}
+		}
+        
+      } // if effectId==9
       else { 
         *oSamples++ = 0;
         *oSamples++ = 0;
       }
       nTicks--;
-    }
+    } // end for loop
     if ( nTicks == 0 ) break;
 
     // Process control messages.
     if ( data->haveMessage ) processMessage( data );
-  }
+  } // end while
 
   return 0;
 }
@@ -256,6 +306,7 @@ int main( int argc, char *argv[] )
   int i;
   unsigned int channels=1;		// number of channels in the input file
   FileWvIn sndPattern;			// sound pattern we want to match
+  FileWvIn poloFile;			// Polo response sound
   double rate = 1.0;			// file data rates
   double in_rate;
    
@@ -360,7 +411,8 @@ int main( int argc, char *argv[] )
   oparameters.nChannels = 2;
   iparameters.deviceId = adac.getDefaultInputDevice();
   iparameters.nChannels = 1;
-  unsigned int bufferFrames = RT_BUFFER_SIZE;
+  //unsigned int bufferFrames = RT_BUFFER_SIZE;
+  unsigned int bufferFrames = 128;
   
     // /*atr* Let RtAudio print messages to stderr.
   adac.showWarnings( true );
@@ -379,15 +431,40 @@ int main( int argc, char *argv[] )
   // Install an interrupt handler function.
 	(void) signal( SIGINT, finish );
 
-  // If realtime output, set our callback function and start the dac.
+
+
+
+// load the "Polo" response sound
+  // Try to load the soundfile.
   try {
-	std::cout << "\n  startSteam\n";  
-    adac.startStream();
+    poloFile.openFile("Noisy_Miner_chirp_mono+10.wav" );
   }
-  catch ( RtAudioError &error ) {
-    error.printMessage();
-    goto cleanup;
+  catch ( StkError & ) {
+    exit( 1 );
   }
+  
+  // Set input read rate based on the default STK sample rate.
+
+  in_rate =  poloFile.getFileRate();
+  rate = in_rate / Stk::sampleRate();
+  poloFile.setRate( rate );  
+  data.poloFile = &poloFile;  // point the TickData structure to the polo input file
+  
+  // Find out how many channels we have.
+  channels = poloFile.channelsOut();
+  std::cout << "Polo file has " << channels << " channels at "<< in_rate <<  "Hz  sample rate " << std::endl;
+
+  std::cout << " we want to run a rate of " << Stk::sampleRate() << " and will sample the file by a factor of "  << rate << std::endl;
+
+  std::cout << " the file size is " << poloFile.getSize() << std::endl;
+
+  // Resize the StkFrames object appropriately.
+  poloframes.resize( poloFile.getSize(), channels );
+
+	// load the whole polo sound file into the poloframes variable
+	//poloFile.tick( poloframes );
+	//std::cout << poloframes.size() << "\n";
+
 
 
 // set up the matched filter (move to a function later?)
@@ -431,6 +508,10 @@ int main( int argc, char *argv[] )
   marcoFilt=marco;
   std::reverse(marcoFilt.begin(), marcoFilt.end());
   data.Matched_filter.setCoefficients(marcoFilt, false);
+  data.Matched_filter.clearTrigger();	// clear the trigger indicator
+  
+  
+  // build the lowpas FIR filter (remove this later)
   data.filter.setCoefficients(fir_coeff, false);
 
 
@@ -441,14 +522,29 @@ int main( int argc, char *argv[] )
 
 
   // Setup finished.
+  
+  
+    // If realtime output, set our callback function and start the dac.
+  try {
+	std::cout << "\n  startSteam\n";  
+    adac.startStream();
+  }
+  catch ( RtAudioError &error ) {
+    error.printMessage();
+    goto cleanup;
+  }
+
+  
+  
+  
   while ( !done ) {
     // Periodically check "done" status.
     Stk::sleep( 50 );
-    data.gettime_now = data.Matched_filter.getTriggerTime();
-    if (data.gettime_now.tv_nsec !=0) {
-		std::cout << "   *** trigger at =  " << data.gettime_now.tv_sec << " , " << data.gettime_now.tv_nsec << " ns\n";
-		data.Matched_filter.clearTrigger();
-	}
+    //data.gettime_now = data.Matched_filter.getTriggerTime();
+    //if (data.gettime_now.tv_nsec !=0) {
+	//	std::cout << "   *** trigger at =  " << data.gettime_now.tv_sec << " , " << data.gettime_now.tv_nsec << " ns\n";
+	//	data.Matched_filter.clearTrigger();
+	//}
     //std::cout <<  data.snapshot << " mf\n";
     //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
     //data.time_difference = data.gettime_now.tv_nsec; // - data.start_time;

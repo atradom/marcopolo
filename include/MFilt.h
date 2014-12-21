@@ -74,7 +74,7 @@ inline StkFloat MFilt :: mtick( StkFloat input )
 
   if (lastFrame_[0] > threshold) {
 	  clock_gettime(CLOCK_REALTIME, &trigger_time);
-	  //std::cout << " foundit = " << lastFrame_[0] << "@" << trigger_time.tv_nsec << "\n";
+	  //std::cout << " heard it = " << lastFrame_[0] << "@" << trigger_time.tv_nsec << "\n";
   }
   return lastFrame_[0];
 }
