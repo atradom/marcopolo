@@ -115,6 +115,7 @@ struct TickData {
   struct timespec gettime_now;	// for timing  (.tv_sec = seconds since 1970, .tv_nsec=nanoseconds into the current second
   StkFloat snapshot;			// instantaneous audio output for debuggin 
   FileWvIn *marcoFile;				// "Marco" sound file
+  bool playing;					// playing the Marco sound
   bool triggered;			// Polo was heard
 
   // Default constructor.
@@ -255,10 +256,9 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
         data->snapshot = sample;  // put the latest sample in the Tickdata structure (for debugging/monitoring)
         
         data->gettime_now = data->Matched_filter.getTriggerTime();	// get the last trigger time of the matched filter
-		if ((data->gettime_now.tv_nsec !=0)) {
-			std::cout << "   *** polo at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
-
-		}
+		//if ((data->gettime_now.tv_nsec !=0)) {
+		//	std::cout << "   *** polo at =  " << data->gettime_now.tv_sec << " , " << data->gettime_now.tv_nsec << " ns\n";
+		//}
 		
 		// if requested, keep playing the marco sound until done
 		if (data->triggered) {
@@ -271,16 +271,17 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 				exit( 1 );
 			}
 			
-			*oSamples++ = marcoSample;	// the 2 output channels are interleaved, so insert 2 copies in the output stream
-			*oSamples++ = marcoSample;
-
 			if ( marcoFile->isFinished() ) {
 				data->triggered = false;
-
 				marcoFile->reset();
 				std::cout << "finished playing marco\n";
+				marcoSample=0;
 			}
+			*oSamples++ = marcoSample;	// the 2 output channels are interleaved, so insert 2 copies in the output stream
+			*oSamples++ = marcoSample;
+			data->Matched_filter.clearTrigger();   // don't trigger on matched filter while playing
 		}
+			
         
       } // if effectId==9
       else { 
@@ -493,7 +494,7 @@ int main( int argc, char *argv[] )
  // now, store the whole input sequence into a vector 
   for ( unsigned int i=0; i<frames.size(); i++ ) {
 	polo.push_back(frames[i]);
-	std::cout << frames[i] << "\n";
+	//std::cout << frames[i] << "\n";
   }
 
 // now create the matched filter coefficients by reversing the input sequence
@@ -529,10 +530,10 @@ int main( int argc, char *argv[] )
 	data.triggered = true;		// tell the realtime audio routine to play marco sound    
 	Stk::sleep( 1000 );			// wait a second
 	
+	
     if (data.Matched_filter.getTriggerTime().tv_nsec > 0){
-		std::cout << "heard polo \n";
-    //if (data.gettime_now.tv_nsec !=0) {
-	//	std::cout << "   *** trigger at =  " << data.gettime_now.tv_sec << " , " << data.gettime_now.tv_nsec << " ns\n";
+		trigger_time = data.Matched_filter.getTriggerTime().tv_nsec - data.start_time.tv_nsec;
+		std::cout << "   *** heard polo after  " << trigger_time << " ns\n";
 		data.Matched_filter.clearTrigger();
 	}
     //std::cout <<  data.snapshot << " mf\n";

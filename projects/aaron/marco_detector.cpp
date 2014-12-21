@@ -501,7 +501,7 @@ int main( int argc, char *argv[] )
  // now, store the whole input sequence into a vector 
   for ( unsigned int i=0; i<frames.size(); i++ ) {
 	marco.push_back(frames[i]);
-	std::cout << frames[i] << "\n";
+	//std::cout << frames[i] << "\n";
   }
 
 // now create the matched filter coefficients by reversing the input sequence
