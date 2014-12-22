@@ -547,21 +547,7 @@ int main( int argc, char *argv[] )
   while ( !done ) {
     // Periodically check "done" status.
     Stk::sleep( 50 );
-    //data.gettime_now = data.Matched_filter.getTriggerTime();
-    //if (data.gettime_now.tv_nsec !=0) {
-	//	std::cout << "   *** trigger at =  " << data.gettime_now.tv_sec << " , " << data.gettime_now.tv_nsec << " ns\n";
-	//	data.Matched_filter.clearTrigger();
-	//}
-    //std::cout <<  data.snapshot << " mf\n";
-    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
-    //data.time_difference = data.gettime_now.tv_nsec; // - data.start_time;
-    //std::cout << "time:" << data.time_difference << "\n";
-    
-    //data.gettime_now.tv_nsec = 0;
-    // std::cout << "   clock check1=  " << data.gettime_now.tv_nsec;
-    //clock_settime(CLOCK_REALTIME,  &data.gettime_now);  // * only works if you are root!!
-    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
-    //std::cout << "   clock check2=  " << data.gettime_now.tv_nsec;
+ 
   }
 
   // Shut down the output stream.
@@ -574,6 +560,6 @@ int main( int argc, char *argv[] )
 
  cleanup:
 
-	std::cout << "\neffects finished ... goodbye.\n\n";
+	std::cout << "\nPolo station finished ... goodbye.\n\n";
   return 0;
 }

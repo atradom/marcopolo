@@ -97,6 +97,27 @@ bool done;
 static void finish(int ignore){ done = true; }
 
 
+// function to calculate time deltas using the real time clock
+// tf = ending time (timespec structure)
+// ts = starting time (timespec structure)
+// return value is floating point in seconds
+double delta_time(timespec ts, timespec tf) {
+	long int diff_sec, diff_ns;		// time differences in seconds and nanoseconds
+	diff_sec = tf.tv_sec - ts.tv_sec;
+	diff_ns = tf.tv_nsec - ts.tv_nsec;
+	//std::cout << "tf = " << tf.tv_sec << " . " << tf.tv_nsec << "\n";
+	//std::cout << "ts = " << ts.tv_sec << " . " << ts.tv_nsec << "\n";
+	if (diff_ns < 0) {
+		diff_ns = diff_ns + 1000000000;
+		diff_sec--;
+	}
+	//std::cout << "diff = " << diff_sec << " . " << diff_ns << "\n";
+	return (double)(diff_sec + diff_ns/1e9);
+}
+		
+
+
+
 // The TickData structure holds all the class instances and data that
 // are shared by the various processing functions.
 struct TickData {
@@ -266,7 +287,7 @@ int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 			if ( marcoFile->isFinished() ) {
 				data->triggered = false;
 				marcoFile->reset();
-				std::cout << "finished playing marco\n";
+				//std::cout << "finished playing marco\n";
 				marcoSample=0;
 			}
 			*oSamples++ = marcoSample;	// the 2 output channels are interleaved, so insert 2 copies in the output stream
@@ -315,7 +336,8 @@ int main( int argc, char *argv[] )
   FileWvIn marcoFile;			// Marco request sound
   double rate = 1.0;			// file data rates
   double in_rate;
-  long int trigger_time=0;		// nanosecond value of the matched filter trigger
+  double trigger_time=0.0;		// time delay from Marco sent to Polo received
+  long int	timeout = 0;		// timeout counter (if we never hear polo back from slave)
    
   RtAudio::DeviceInfo info;
   
@@ -532,26 +554,29 @@ int main( int argc, char *argv[] )
 	// periodically send the Marco signal, start timing and wait for the Polo signal
     
 	// store the starting time
-	clock_gettime(CLOCK_REALTIME, &data.start_time);		
-	data.triggered = true;		// tell the realtime audio routine to play marco sound    
-	Stk::sleep( 1000 );			// wait a second
+	data.Matched_filter.clearTrigger();				// clear trigger time in the matched filter
+	clock_gettime(CLOCK_REALTIME, &data.start_time); // get reference time for marco send		
+	data.triggered = true;		// tell the realtime audio routine to play marco sound   
 	
 	
-    if (data.Matched_filter.getTriggerTime().tv_nsec > 0){
-		trigger_time = data.Matched_filter.getTriggerTime().tv_nsec - data.start_time.tv_nsec;
-		std::cout << "   *** heard polo after  " << trigger_time << " ns\n";
-		data.Matched_filter.clearTrigger();
+	// loop to see if the matched filter heard the polo sound (or if we timed out > 1sec)
+	timeout = 0;
+	while ((timeout < 100) &  (data.Matched_filter.getTriggerTime().tv_nsec == 0)) {
+		Stk::sleep( 10 );			// wait 10msec
+		timeout++;
 	}
-    //std::cout <<  data.snapshot << " mf\n";
-    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
-    //data.time_difference = data.gettime_now.tv_nsec; // - data.start_time;
-    //std::cout << "time:" << data.time_difference << "\n";
-    
-    //data.gettime_now.tv_nsec = 0;
-    // std::cout << "   clock check1=  " << data.gettime_now.tv_nsec;
-    //clock_settime(CLOCK_REALTIME,  &data.gettime_now);  // * only works if you are root!!
-    //clock_gettime(CLOCK_REALTIME, &data.gettime_now);
-    //std::cout << "   clock check2=  " << data.gettime_now.tv_nsec;
+	
+    if (data.Matched_filter.getTriggerTime().tv_nsec > 0){    // we heard the polo sound from the slave
+		trigger_time = delta_time(data.start_time, data.Matched_filter.getTriggerTime());
+		std::cout << trigger_time << " second delay \n";
+	}
+	else {
+		std::cout << " timed out :( \n";
+	}
+	
+	Stk::sleep( 500 );						// wait before sending the next Marco sound
+	
+
   }
 
   // Shut down the output stream.
@@ -564,6 +589,6 @@ int main( int argc, char *argv[] )
 
  cleanup:
 
-	std::cout << "\neffects finished ... goodbye.\n\n";
+	std::cout << "\nMarco Station finished ... goodbye.\n\n";
   return 0;
 }
